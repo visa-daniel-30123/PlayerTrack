@@ -15,7 +15,22 @@ type Performance = {
   points: number;
   assists: number;
   rebounds: number;
+  efficiency?: number;
   notes: string;
+};
+
+type Leader = {
+  player: Player;
+  avgPoints: number;
+  games: number;
+} | null;
+
+type PlayerAverages = {
+  player: Player;
+  games: number;
+  avgPoints: number;
+  avgAssists: number;
+  avgRebounds: number;
 };
 
 const API_BASE = 'http://localhost:4000/api';
@@ -33,6 +48,29 @@ function App() {
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [editingPerformanceId, setEditingPerformanceId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [leader, setLeader] = useState<Leader>(null);
+  const [activePage, setActivePage] = useState<'players' | 'stats'>('players');
+  const [playerStats, setPlayerStats] = useState<PlayerAverages[]>([]);
+
+  const fetchLeader = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/leader`);
+      const data = await res.json();
+      setLeader(data);
+    } catch {
+      // silently ignore leader errors to not block main UI
+    }
+  };
+
+  const fetchPlayerStats = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/player-averages`);
+      const data = await res.json();
+      setPlayerStats(data);
+    } catch {
+      // ignore silently
+    }
+  };
 
   const fetchPlayers = async () => {
     setLoadingPlayers(true);
@@ -67,6 +105,8 @@ function App() {
 
   useEffect(() => {
     fetchPlayers();
+    fetchLeader();
+    fetchPlayerStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -134,6 +174,8 @@ function App() {
         setPerformances([]);
       }
       await fetchPlayers();
+      await fetchLeader();
+      await fetchPlayerStats();
     } catch (err) {
       setError((err as Error).message);
     }
@@ -172,6 +214,8 @@ function App() {
         throw new Error(data.error || 'Failed to save performance');
       }
       await fetchPerformances(selectedPlayer.id);
+      await fetchLeader();
+      await fetchPlayerStats();
       setPerformanceForm({
         date: new Date().toISOString().slice(0, 10),
         player_id: selectedPlayer.id,
@@ -196,6 +240,8 @@ function App() {
       }
       if (selectedPlayer) {
         await fetchPerformances(selectedPlayer.id);
+        await fetchLeader();
+        await fetchPlayerStats();
       }
     } catch (err) {
       setError((err as Error).message);
@@ -211,10 +257,27 @@ function App() {
             Track game-by-game impact with a clean, focused dashboard.
           </p>
         </div>
+        <nav className="top-nav">
+          <button
+            type="button"
+            className={`nav-tab ${activePage === 'players' ? 'nav-tab--active' : ''}`}
+            onClick={() => setActivePage('players')}
+          >
+            Players
+          </button>
+          <button
+            type="button"
+            className={`nav-tab ${activePage === 'stats' ? 'nav-tab--active' : ''}`}
+            onClick={() => setActivePage('stats')}
+          >
+            Stats
+          </button>
+        </nav>
       </header>
 
       <main className="layout">
-        <section className="card">
+        {activePage === 'players' && (
+          <section className="card">
           <div className="card-header">
             <h2>Players</h2>
             {loadingPlayers && <span className="pill">Loading...</span>}
@@ -330,8 +393,11 @@ function App() {
             </form>
           </div>
         </section>
+        )}
 
-        <section className="card">
+        {activePage === 'stats' && (
+          <>
+          <section className="card">
           <div className="card-header">
             <h2>Performances</h2>
             {selectedPlayer && (
@@ -340,8 +406,23 @@ function App() {
                 {selectedPlayer.team ? ` • ${selectedPlayer.team}` : ''}
               </span>
             )}
+            {!selectedPlayer && <span className="pill">No player selected</span>}
             {loadingPerformances && <span className="pill">Loading...</span>}
           </div>
+
+          {leader && (
+            <div className="leader-badge">
+              <div className="leader-label">Top scorer (avg points)</div>
+              <div className="leader-name">
+                {leader.player.name}
+                {leader.player.team ? ` • ${leader.player.team}` : ''}
+              </div>
+              <div className="leader-meta">
+                {leader.games} game{leader.games !== 1 ? 's' : ''} ·{' '}
+                {leader.avgPoints.toFixed(1)} pts / game
+              </div>
+            </div>
+          )}
 
           {!selectedPlayer && (
             <p className="muted">Select a player to see and log performances.</p>
@@ -357,6 +438,7 @@ function App() {
                       <th>Pts</th>
                       <th>Ast</th>
                       <th>Reb</th>
+                      <th>Eff</th>
                       <th>Notes</th>
                       <th></th>
                     </tr>
@@ -375,6 +457,7 @@ function App() {
                         <td>{p.points}</td>
                         <td>{p.assists}</td>
                         <td>{p.rebounds}</td>
+                        <td>{p.efficiency ?? p.points + p.assists + p.rebounds}</td>
                         <td className="notes-cell">{p.notes}</td>
                         <td className="table-actions">
                           <button
@@ -492,6 +575,47 @@ function App() {
             </>
           )}
         </section>
+
+        <section className="card">
+          <div className="card-header">
+            <h2>Per-player averages</h2>
+          </div>
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Team</th>
+                  <th>Games</th>
+                  <th>Avg Pts</th>
+                  <th>Avg Ast</th>
+                  <th>Avg Reb</th>
+                </tr>
+              </thead>
+              <tbody>
+                {playerStats.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="muted">
+                      No data yet. Add performances to see averages.
+                    </td>
+                  </tr>
+                )}
+                {playerStats.map((row) => (
+                  <tr key={row.player.id}>
+                    <td>{row.player.name}</td>
+                    <td>{row.player.team}</td>
+                    <td>{row.games}</td>
+                    <td>{row.avgPoints ? row.avgPoints.toFixed(1) : '0.0'}</td>
+                    <td>{row.avgAssists ? row.avgAssists.toFixed(1) : '0.0'}</td>
+                    <td>{row.avgRebounds ? row.avgRebounds.toFixed(1) : '0.0'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        </>
+        )}
       </main>
     </div>
   );
