@@ -1,0 +1,19 @@
+{
+  "name": "playertrack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "dev:server": "node server.js",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "npm run dev:server"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "sqlite3": "^5.1.7"
+  }
+}
