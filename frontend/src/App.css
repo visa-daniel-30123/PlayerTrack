@@ -143,10 +143,135 @@ body {
   }
 }
 
+.scouting-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .players-list {
-  max-height: 420px;
+  max-height: 600px;
   overflow: auto;
   padding-right: 0.35rem;
+}
+
+.search-bar-wrapper {
+  margin-bottom: 0.75rem;
+}
+
+.search-input {
+  width: 100%;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  background: rgba(15, 23, 42, 0.9);
+  color: #f9fafb;
+  padding: 0.5rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.search-input:focus {
+  border-color: rgba(129, 140, 248, 0.95);
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.8);
+  background: rgba(15, 23, 42, 0.98);
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.scouting-banner {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.25), rgba(37, 99, 235, 0.2));
+  border-radius: 18px;
+  padding: 2rem 1.5rem;
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  box-shadow:
+    0 20px 50px rgba(37, 99, 235, 0.3),
+    0 0 0 1px rgba(129, 140, 248, 0.2);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.scouting-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.scouting-logo {
+  margin-bottom: 1rem;
+}
+
+.basketball-icon {
+  font-size: 3.5rem;
+  filter: drop-shadow(0 4px 8px rgba(37, 99, 235, 0.4));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.scouting-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  background: linear-gradient(135deg, #818cf8, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.05em;
+}
+
+.scouting-subtitle {
+  font-size: 0.85rem;
+  color: #cbd5f5;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.scouting-stats {
+  display: flex;
+  justify-content: space-around;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(129, 140, 248, 0.3);
+}
+
+.stat-item {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #818cf8;
+  margin-bottom: 0.25rem;
+  text-shadow: 0 2px 8px rgba(129, 140, 248, 0.4);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .players-list ul {

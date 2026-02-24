@@ -30,6 +30,7 @@ db.serialize(() => {
       points INTEGER DEFAULT 0,
       assists INTEGER DEFAULT 0,
       rebounds INTEGER DEFAULT 0,
+      minutes INTEGER DEFAULT 0,
       notes TEXT,
       FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
     )
@@ -54,6 +55,13 @@ db.serialize(() => {
       });
       stmt.finalize();
       console.log('Seeded default Romanian players into the database.');
+    }
+  });
+
+  // Ensure "minutes" column exists on older databases
+  db.run('ALTER TABLE performances ADD COLUMN minutes INTEGER DEFAULT 0', (err) => {
+    if (err && !String(err.message).includes('duplicate column name')) {
+      console.error('Failed to add minutes column to performances table', err);
     }
   });
 });
@@ -106,6 +114,7 @@ app.get('/api/players/:id/performances', (req, res) => {
       if (err) return res.status(500).json({ error: 'Failed to fetch performances' });
       const withEfficiency = rows.map((row) => ({
         ...row,
+        minutes: row.minutes ?? 0,
         efficiency: (row.points || 0) + (row.rebounds || 0) + (row.assists || 0),
       }));
       res.json(withEfficiency);
@@ -115,18 +124,19 @@ app.get('/api/players/:id/performances', (req, res) => {
 
 app.post('/api/players/:id/performances', (req, res) => {
   const { id } = req.params;
-  const { date, points, assists, rebounds, notes } = req.body;
+  const { date, points, assists, rebounds, minutes, notes } = req.body;
   if (!date) return res.status(400).json({ error: 'Date is required' });
   const stmt = db.prepare(
-    'INSERT INTO performances (player_id, date, points, assists, rebounds, notes) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO performances (player_id, date, points, assists, rebounds, minutes, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
   );
   stmt.run(
-    [id, date, points || 0, assists || 0, rebounds || 0, notes || ''],
+    [id, date, points || 0, assists || 0, rebounds || 0, minutes || 0, notes || ''],
     function (err) {
       if (err) return res.status(500).json({ error: 'Failed to create performance' });
       const safePoints = points || 0;
       const safeAssists = assists || 0;
       const safeRebounds = rebounds || 0;
+      const safeMinutes = minutes || 0;
       res.status(201).json({
         id: this.lastID,
         player_id: Number(id),
@@ -134,6 +144,7 @@ app.post('/api/players/:id/performances', (req, res) => {
         points: safePoints,
         assists: safeAssists,
         rebounds: safeRebounds,
+        minutes: safeMinutes,
         notes: notes || '',
         efficiency: safePoints + safeRebounds + safeAssists,
       });
@@ -143,25 +154,27 @@ app.post('/api/players/:id/performances', (req, res) => {
 
 app.put('/api/performances/:id', (req, res) => {
   const { id } = req.params;
-  const { date, points, assists, rebounds, notes } = req.body;
+  const { date, points, assists, rebounds, minutes, notes } = req.body;
   if (!date) return res.status(400).json({ error: 'Date is required' });
   const stmt = db.prepare(
-    'UPDATE performances SET date = ?, points = ?, assists = ?, rebounds = ?, notes = ? WHERE id = ?'
+    'UPDATE performances SET date = ?, points = ?, assists = ?, rebounds = ?, minutes = ?, notes = ? WHERE id = ?'
   );
   stmt.run(
-    [date, points || 0, assists || 0, rebounds || 0, notes || '', id],
+    [date, points || 0, assists || 0, rebounds || 0, minutes || 0, notes || '', id],
     function (err) {
       if (err) return res.status(500).json({ error: 'Failed to update performance' });
       if (this.changes === 0) return res.status(404).json({ error: 'Performance not found' });
       const safePoints = points || 0;
       const safeAssists = assists || 0;
       const safeRebounds = rebounds || 0;
+      const safeMinutes = minutes || 0;
       res.json({
         id: Number(id),
         date,
         points: safePoints,
         assists: safeAssists,
         rebounds: safeRebounds,
+        minutes: safeMinutes,
         notes: notes || '',
         efficiency: safePoints + safeRebounds + safeAssists,
       });
@@ -214,7 +227,7 @@ app.get('/api/leader', (req, res) => {
   });
 });
 
-// Per-player averages for points, assists, rebounds
+// Per-player averages for points, assists, rebounds, minutes
 app.get('/api/player-averages', (req, res) => {
   const query = `
     SELECT
@@ -225,6 +238,7 @@ app.get('/api/player-averages', (req, res) => {
       AVG(per.points) AS avgPoints,
       AVG(per.assists) AS avgAssists,
       AVG(per.rebounds) AS avgRebounds,
+      AVG(per.minutes) AS avgMinutes,
       COUNT(per.id) AS games
     FROM players p
     LEFT JOIN performances per ON per.player_id = p.id
@@ -246,6 +260,7 @@ app.get('/api/player-averages', (req, res) => {
       avgPoints: row.games ? row.avgPoints : 0,
       avgAssists: row.games ? row.avgAssists : 0,
       avgRebounds: row.games ? row.avgRebounds : 0,
+      avgMinutes: row.games ? row.avgMinutes : 0,
     }));
 
     res.json(result);

@@ -15,6 +15,7 @@ type Performance = {
   points: number;
   assists: number;
   rebounds: number;
+  minutes: number;
   efficiency?: number;
   notes: string;
 };
@@ -31,6 +32,7 @@ type PlayerAverages = {
   avgPoints: number;
   avgAssists: number;
   avgRebounds: number;
+  avgMinutes: number;
 };
 
 const API_BASE = 'http://localhost:4000/api';
@@ -44,6 +46,7 @@ function App() {
   const [playerForm, setPlayerForm] = useState<Partial<Player>>({});
   const [performanceForm, setPerformanceForm] = useState<Partial<Performance>>({
     date: new Date().toISOString().slice(0, 10),
+    minutes: 0,
   });
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [editingPerformanceId, setEditingPerformanceId] = useState<number | null>(null);
@@ -51,6 +54,7 @@ function App() {
   const [leader, setLeader] = useState<Leader>(null);
   const [activePage, setActivePage] = useState<'players' | 'stats'>('players');
   const [playerStats, setPlayerStats] = useState<PlayerAverages[]>([]);
+  const [playerSearchQuery, setPlayerSearchQuery] = useState<string>('');
 
   const fetchLeader = async () => {
     try {
@@ -206,6 +210,7 @@ function App() {
           points: Number(performanceForm.points || 0),
           assists: Number(performanceForm.assists || 0),
           rebounds: Number(performanceForm.rebounds || 0),
+          minutes: Number(performanceForm.minutes || 0),
           notes: performanceForm.notes || '',
         }),
       });
@@ -219,6 +224,7 @@ function App() {
       setPerformanceForm({
         date: new Date().toISOString().slice(0, 10),
         player_id: selectedPlayer.id,
+        minutes: 0,
       });
       setEditingPerformanceId(null);
     } catch (err) {
@@ -228,7 +234,10 @@ function App() {
 
   const startEditPerformance = (p: Performance) => {
     setEditingPerformanceId(p.id);
-    setPerformanceForm(p);
+    setPerformanceForm({
+      ...p,
+      minutes: p.minutes ?? 0,
+    });
   };
 
   const deletePerformance = async (id: number) => {
@@ -277,6 +286,7 @@ function App() {
 
       <main className="layout">
         {activePage === 'players' && (
+          <>
           <section className="card">
           <div className="card-header">
             <h2>Players</h2>
@@ -287,11 +297,24 @@ function App() {
 
           <div className="players-section">
             <div className="players-list">
+              <div className="search-bar-wrapper">
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search players by name..."
+                  value={playerSearchQuery}
+                  onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                />
+              </div>
               {players.length === 0 && !loadingPlayers && (
                 <p className="muted">No players yet. Add your first player below.</p>
               )}
               <ul>
-                {players.map((player) => (
+                {players
+                  .filter((player) =>
+                    player.name.toLowerCase().includes(playerSearchQuery.toLowerCase())
+                  )
+                  .map((player) => (
                   <li
                     key={player.id}
                     className={
@@ -332,7 +355,14 @@ function App() {
                       </button>
                     </div>
                   </li>
-                ))}
+                  ))}
+                {players.filter((player) =>
+                  player.name.toLowerCase().includes(playerSearchQuery.toLowerCase())
+                ).length === 0 && players.length > 0 && (
+                  <li>
+                    <p className="muted">No players found matching "{playerSearchQuery}"</p>
+                  </li>
+                )}
               </ul>
             </div>
 
@@ -393,6 +423,31 @@ function App() {
             </form>
           </div>
         </section>
+
+        <section className="card scouting-card">
+          <div className="scouting-banner">
+            <div className="scouting-logo">
+              <div className="basketball-icon">🏀</div>
+            </div>
+            <h3 className="scouting-title">Global Hoops Scouting</h3>
+            <p className="scouting-subtitle">
+              Professional player performance tracking and analytics platform
+            </p>
+            <div className="scouting-stats">
+              <div className="stat-item">
+                <div className="stat-value">{players.length}</div>
+                <div className="stat-label">Players</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">
+                  {performances.length > 0 ? performances.length : 0}
+                </div>
+                <div className="stat-label">Games Tracked</div>
+              </div>
+            </div>
+          </div>
+        </section>
+        </>
         )}
 
         {activePage === 'stats' && (
@@ -438,6 +493,7 @@ function App() {
                       <th>Pts</th>
                       <th>Ast</th>
                       <th>Reb</th>
+                      <th>Min</th>
                       <th>Eff</th>
                       <th>Notes</th>
                       <th></th>
@@ -457,6 +513,7 @@ function App() {
                         <td>{p.points}</td>
                         <td>{p.assists}</td>
                         <td>{p.rebounds}</td>
+                        <td>{p.minutes ?? 0}</td>
                         <td>{p.efficiency ?? p.points + p.assists + p.rebounds}</td>
                         <td className="notes-cell">{p.notes}</td>
                         <td className="table-actions">
@@ -536,6 +593,20 @@ function App() {
                       min={0}
                     />
                   </label>
+                  <label>
+                    <span>Minutes</span>
+                    <input
+                      type="number"
+                      value={performanceForm.minutes ?? 0}
+                      onChange={(e) =>
+                        setPerformanceForm((prev) => ({
+                          ...prev,
+                          minutes: Number(e.target.value),
+                        }))
+                      }
+                      min={0}
+                    />
+                  </label>
                   <label className="span-2">
                     <span>Notes</span>
                     <textarea
@@ -590,6 +661,7 @@ function App() {
                   <th>Avg Pts</th>
                   <th>Avg Ast</th>
                   <th>Avg Reb</th>
+                  <th>Avg Min</th>
                 </tr>
               </thead>
               <tbody>
@@ -608,6 +680,7 @@ function App() {
                     <td>{row.avgPoints ? row.avgPoints.toFixed(1) : '0.0'}</td>
                     <td>{row.avgAssists ? row.avgAssists.toFixed(1) : '0.0'}</td>
                     <td>{row.avgRebounds ? row.avgRebounds.toFixed(1) : '0.0'}</td>
+                    <td>{row.avgMinutes ? row.avgMinutes.toFixed(1) : '0.0'}</td>
                   </tr>
                 ))}
               </tbody>
