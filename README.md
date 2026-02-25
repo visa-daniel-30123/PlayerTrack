@@ -61,3 +61,7 @@ Oferă două zone de lucru:
 pagină publică Global Hoops, cu descrierea agenției, top 3 jucători și formular de aplicație pentru viitori colegi;
 secțiuni interne Players și Stats, vizibile doar după login de staff (cont admin / admin1).
 Are o interfață modernă React: dark theme, layout pe două coloane, carduri curate, căutare de jucători, tabele responsive și formular de aplicație cu validare și feedback vizual.
+
+
+
+Hurdel: When I first tried to run the React frontend, Vite crashed with a cryptic error about crypto.hash not being a function and a warning that my Node version was 19.8.1 while Vite required 20.19+ or 22.12+. The hallucination risk here is to start “fixing” crypto or changing Vite config, instead of recognizing it’s purely a runtime version mismatch.
