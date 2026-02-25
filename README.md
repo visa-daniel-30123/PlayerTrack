@@ -1,3 +1,6 @@
+ LLM FOLOSIT : CURSOR AI
+
+
 ## Player Performance Tracker
 
 A small full-stack app to track players and their game-by-game performances.
