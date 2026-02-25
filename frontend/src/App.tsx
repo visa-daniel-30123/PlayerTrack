@@ -52,9 +52,22 @@ function App() {
   const [editingPerformanceId, setEditingPerformanceId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [leader, setLeader] = useState<Leader>(null);
-  const [activePage, setActivePage] = useState<'players' | 'stats'>('players');
+  const [activePage, setActivePage] = useState<'players' | 'stats' | 'apply'>('apply');
   const [playerStats, setPlayerStats] = useState<PlayerAverages[]>([]);
   const [playerSearchQuery, setPlayerSearchQuery] = useState<string>('');
+  const [applicationForm, setApplicationForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    birthDate: '',
+    team: '',
+  });
+  const [applicationStatus, setApplicationStatus] = useState<'idle' | 'success' | 'error'>(
+    'idle',
+  );
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const fetchLeader = async () => {
     try {
@@ -257,29 +270,99 @@ function App() {
     }
   };
 
+  const handleNavClick = (page: 'players' | 'stats' | 'apply') => {
+    if (page === 'apply') {
+      setActivePage('apply');
+      return;
+    }
+    if (!isAdmin) {
+      setActivePage('apply');
+      setLoginError('Ai nevoie de cont admin/admin1 pentru a accesa această secțiune.');
+      return;
+    }
+    setActivePage(page);
+  };
+
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div>
-          <h1>Player Performance Tracker</h1>
-          <p className="subtitle">
-            Track game-by-game impact with a clean, focused dashboard.
-          </p>
+        <div className="header-top">
+          <div>
+            <h1>Player Performance Tracker</h1>
+            <p className="subtitle">
+              Track game-by-game impact with a clean, focused dashboard.
+            </p>
+          </div>
+          <div className="header-staff-login">
+            {!isAdmin ? (
+              <>
+                <span className="header-staff-label">Staff access</span>
+                <input
+                  type="text"
+                  className="header-login-input"
+                  placeholder="username"
+                  value={loginForm.username}
+                  onChange={(e) =>
+                    setLoginForm((prev) => ({ ...prev, username: e.target.value }))
+                  }
+                />
+                <input
+                  type="password"
+                  className="header-login-input"
+                  placeholder="password"
+                  value={loginForm.password}
+                  onChange={(e) =>
+                    setLoginForm((prev) => ({ ...prev, password: e.target.value }))
+                  }
+                />
+                <button
+                  type="button"
+                  className="ghost-btn header-login-btn"
+                  onClick={() => {
+                    if (loginForm.username === 'admin' && loginForm.password === 'admin1') {
+                      setIsAdmin(true);
+                      setLoginError(null);
+                      setActivePage('players');
+                    } else {
+                      setIsAdmin(false);
+                      setLoginError('Date de acces invalide.');
+                      window.alert('Nume sau parolă greșită.');
+                    }
+                  }}
+                >
+                  Login
+                </button>
+              </>
+            ) : (
+              <span className="header-staff-label">Admin mode</span>
+            )}
+          </div>
         </div>
         <nav className="top-nav">
+          {isAdmin && (
+            <>
+              <button
+                type="button"
+                className={`nav-tab ${activePage === 'players' ? 'nav-tab--active' : ''}`}
+                onClick={() => handleNavClick('players')}
+              >
+                Players
+              </button>
+              <button
+                type="button"
+                className={`nav-tab ${activePage === 'stats' ? 'nav-tab--active' : ''}`}
+                onClick={() => handleNavClick('stats')}
+              >
+                Stats
+              </button>
+            </>
+          )}
           <button
             type="button"
-            className={`nav-tab ${activePage === 'players' ? 'nav-tab--active' : ''}`}
-            onClick={() => setActivePage('players')}
+            className={`nav-tab ${activePage === 'apply' ? 'nav-tab--active' : ''}`}
+            onClick={() => handleNavClick('apply')}
           >
-            Players
-          </button>
-          <button
-            type="button"
-            className={`nav-tab ${activePage === 'stats' ? 'nav-tab--active' : ''}`}
-            onClick={() => setActivePage('stats')}
-          >
-            Stats
+            Global Hoops
           </button>
         </nav>
       </header>
@@ -688,6 +771,184 @@ function App() {
           </div>
         </section>
         </>
+        )}
+
+        {activePage === 'apply' && (
+          <>
+            <section className="card">
+              <div className="card-header">
+                <h2>Despre Global Hoops Scouting</h2>
+              </div>
+              <div className="apply-intro">
+                <p>
+                  Suntem o agenție de <strong>scouting și analytics în baschet</strong> care îmbină
+                  observația din sală cu date clare: puncte, eficiență, minute jucate și context
+                  real de joc. Lucrăm cu cluburi și jucători care vor să înțeleagă mai bine
+                  impactul lor pe teren.
+                </p>
+                <p>
+                  Mai jos vezi un snapshot cu <strong>primele 3 medii de puncte pe meci</strong> din
+                  baza de date actuală.
+                </p>
+              </div>
+
+              <div className="table-wrapper apply-top-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Player</th>
+                      <th>Team</th>
+                      <th>Games</th>
+                      <th>Avg Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {playerStats
+                      .slice()
+                      .sort((a, b) => b.avgPoints - a.avgPoints)
+                      .slice(0, 3)
+                      .map((row, idx) => (
+                        <tr key={row.player.id}>
+                          <td>{idx + 1}</td>
+                          <td>{row.player.name}</td>
+                          <td>{row.player.team}</td>
+                          <td>{row.games}</td>
+                          <td>{row.avgPoints ? row.avgPoints.toFixed(1) : '0.0'}</td>
+                        </tr>
+                      ))}
+                    {playerStats.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="muted">
+                          Încă nu avem suficiente date pentru a calcula top 3 la puncte pe meci.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="card">
+              <div className="card-header">
+                <h2>Aplică în echipa noastră</h2>
+              </div>
+              <form
+                className="form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (
+                    !applicationForm.firstName ||
+                    !applicationForm.lastName ||
+                    !applicationForm.email ||
+                    !applicationForm.birthDate
+                  ) {
+                    setApplicationStatus('error');
+                    return;
+                  }
+                  setApplicationStatus('success');
+                  setApplicationForm({
+                    firstName: '',
+                    lastName: '',
+                    email: '',
+                    birthDate: '',
+                    team: '',
+                  });
+                  // aici ai trimite datele spre backend / email
+                }}
+              >
+                <h3>Formular aplicație</h3>
+                <div className="form-grid">
+                  <label>
+                    <span>Prenume *</span>
+                    <input
+                      type="text"
+                      value={applicationForm.firstName}
+                      onChange={(e) =>
+                        setApplicationForm((prev) => ({ ...prev, firstName: e.target.value }))
+                      }
+                      placeholder="ex. Andrei"
+                    />
+                  </label>
+                  <label>
+                    <span>Nume *</span>
+                    <input
+                      type="text"
+                      value={applicationForm.lastName}
+                      onChange={(e) =>
+                        setApplicationForm((prev) => ({ ...prev, lastName: e.target.value }))
+                      }
+                      placeholder="ex. Popescu"
+                    />
+                  </label>
+                  <label>
+                    <span>Gmail *</span>
+                    <input
+                      type="email"
+                      value={applicationForm.email}
+                      onChange={(e) =>
+                        setApplicationForm((prev) => ({ ...prev, email: e.target.value }))
+                      }
+                      placeholder="ex. nume.prenume@gmail.com"
+                    />
+                  </label>
+                  <label>
+                    <span>Data nașterii *</span>
+                    <input
+                      type="date"
+                      value={applicationForm.birthDate}
+                      onChange={(e) =>
+                        setApplicationForm((prev) => ({ ...prev, birthDate: e.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="span-2">
+                    <span>Echipă / proiect actual</span>
+                    <input
+                      type="text"
+                      value={applicationForm.team}
+                      onChange={(e) =>
+                        setApplicationForm((prev) => ({ ...prev, team: e.target.value }))
+                      }
+                      placeholder="ex. CSU, Cluj, Dinamo sau alt club"
+                    />
+                  </label>
+                </div>
+                {applicationStatus === 'error' && (
+                  <div className="error-banner">
+                    Completează câmpurile marcate cu * înainte să trimiți formularul.
+                  </div>
+                )}
+                {applicationStatus === 'success' && (
+                  <div className="success-banner">
+                    Cererea ta a fost trimisă. Îți mulțumim și revenim către tine pe email.
+                  </div>
+                )}
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="ghost-btn"
+                    onClick={() => {
+                      setApplicationForm({
+                        firstName: '',
+                        lastName: '',
+                        email: '',
+                        birthDate: '',
+                        team: '',
+                      });
+                      setApplicationStatus('idle');
+                    }}
+                  >
+                    Reset
+                  </button>
+                  <button type="submit" className="primary-btn">
+                    Trimite aplicația
+                  </button>
+                </div>
+              </form>
+
+            </section>
+          </>
         )}
       </main>
     </div>

@@ -49,3 +49,12 @@ A small full-stack app to track players and their game-by-game performances.
 
 All data is persisted in a local SQLite database file `playertrack.db` in the project root.
 
+
+Descriere scurtă a aplicației
+Player Performance Tracker – Global Hoops Scouting este o aplicație full‑stack pentru scouting de baschet care:
+Gestionează jucători și meciuri: poți adăuga jucători, loga performanțele lor pe meci (puncte, assisturi, recuperări, minute jucate, notițe), cu date salvate într‑o bază de date SQLite.
+Calculează automat statistici: eficiență pe meci, medii pe jucător (puncte, assisturi, recuperări, minute), plus un „Top scorer” după media punctelor.
+Oferă două zone de lucru:
+pagină publică Global Hoops, cu descrierea agenției, top 3 jucători și formular de aplicație pentru viitori colegi;
+secțiuni interne Players și Stats, vizibile doar după login de staff (cont admin / admin1).
+Are o interfață modernă React: dark theme, layout pe două coloane, carduri curate, căutare de jucători, tabele responsive și formular de aplicație cu validare și feedback vizual.
